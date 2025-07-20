@@ -19,7 +19,7 @@ class PddAdapter(BaseAdapter):
             'client_id': self.client_id,
             'timestamp': int(time.time()),
             'data_type': 'JSON',
-            'version': 'V1',
+            'version': 'V2',  # 确保使用最新API版本
             'sign_method': 'md5',
             'goods_name': keyword,
             'page': 1,

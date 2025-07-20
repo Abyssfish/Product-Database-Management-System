@@ -31,10 +31,20 @@
                 }
             }
             .search-container {
-                margin: 15px 0;
-                display: flex;
-                gap: 10px;
-            }
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+        }
+        .upload-container {
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        #exportExcel {
+            background-color: #2196F3;
+            padding: 8px 16px;
+        }
             #keywordInput {
                 flex: 1;
                 padding: 10px;
@@ -45,105 +55,252 @@
     </style>
 </head>
 <body>
-    <h1>商品价格查询</h1>
+    <h1>商品数据库管理系统</h1>
+    <div class="section">
+    <h2 class="mb-4">添加新商品</h2>
+    <form id="addProductForm" class="row g-3">
+        <div class="col-md-6">
+            <label for="productName" class="form-label">商品全名 *</label>
+            <input type="text" class="form-control" id="productName" name="name" required>
+        </div>
+        <div class="col-md-6">
+            <label for="productSpec" class="form-label">规格</label>
+            <input type="text" class="form-control" id="productSpec" name="specifications">
+        </div>
+        <div class="col-md-4">
+            <label for="productUnit" class="form-label">单位</label>
+            <input type="text" class="form-control" id="productUnit" name="unit" value="个">
+        </div>
+        <div class="col-md-4">
+            <label for="productQuantity" class="form-label">数量</label>
+            <input type="number" class="form-control" id="productQuantity" name="quantity" value="1" min="1">
+        </div>
+        <div class="col-md-4">
+            <label for="productPrice" class="form-label">单价(元) *</label>
+            <input type="number" class="form-control" id="productPrice" name="price" step="0.01" min="0" required>
+        </div>
+        <div class="col-md-6">
+            <label for="productAmount" class="form-label">金额(元)</label>
+            <input type="number" class="form-control" id="productAmount" name="amount" step="0.01" min="0" readonly>
+        </div>
+        <div class="col-md-6">
+            <label for="productImage" class="form-label">商品图片</label>
+            <input type="file" class="form-control" id="productImage" name="image" accept="image/*">
+        </div>
+        <div class="col-12">
+            <button type="submit" class="btn btn-primary">添加商品</button>
+        </div>
+    </form>
+    <div id="addResult" class="mt-3"></div>
+</div>
+
+<div class="section">
+    <h2 class="mb-4">本地数据库搜索</h2>
+    <div class="row g-3 mb-4">
+        <div class="col-md-8">
+            <input type="text" class="form-control" id="localSearchKeyword" placeholder="输入商品名称或规格关键词...">
+        </div>
+        <div class="col-md-4">
+            <button id="localSearchButton" class="btn btn-secondary w-100">搜索本地商品</button>
+        </div>
+    </div>
+    <div id="localSearchResults" class="row"></div>
+</div>
+
+<div class="section">
+    <h2 class="mb-4">API搜索</h2>
     <div class="camera-container">
-        <video id="video" autoplay playsinline width="480" height="320"></video>
-        <canvas id="canvas" width="480" height="320"></canvas>
-        <div class="button-group">
-            <button id="startBtn">开始摄像头</button>
-            <button id="captureBtn">拍照识别</button>
-            <button id="stopBtn">停止摄像头</button>
+        <div class="search-container">
+            <input type="text" id="keywordInput" placeholder="输入关键词搜索...">
+            <button id="searchButton">搜索</button>
+        </div>
+        <div class="upload-container">
+            <input type="file" id="imageUpload" accept="image/*">
+            <button id="uploadButton">上传图片识别</button>
         </div>
     </div>
     <div id="result"></div>
 
-    <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const startBtn = document.getElementById('startBtn');
-        const captureBtn = document.getElementById('captureBtn');
-        const stopBtn = document.getElementById('stopBtn');
-        const resultDiv = document.getElementById('result');
-        let stream = null;
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<!-- 添加修改商品模态框 -->
+<div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true" style="display: none;">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editProductModalLabel">修改商品</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="editProductForm">
+          <input type="hidden" id="editProductId" name="id">
+          <div class="mb-3">
+            <label for="editProductIdDisplay" class="form-label">商品ID</label>
+            <input type="text" class="form-control" id="editProductIdDisplay" disabled>
+          </div>
+          <div class="mb-3">
+            <label for="editProductName" class="form-label">商品名称</label>
+            <input type="text" class="form-control" id="editProductName" name="name" required>
+          </div>
+          <div class="mb-3">
+            <label for="editProductSpec" class="form-label">规格</label>
+            <input type="text" class="form-control" id="editProductSpec" name="specifications">
+          </div>
+          <div class="mb-3">
+            <label for="editProductUnit" class="form-label">单位</label>
+            <input type="text" class="form-control" id="editProductUnit" name="unit">
+          </div>
+          <div class="mb-3">
+            <label for="editProductQuantity" class="form-label">数量</label>
+            <input type="number" class="form-control" id="editProductQuantity" name="quantity" min="1">
+          </div>
+          <div class="mb-3">
+            <label for="editProductPrice" class="form-label">单价(元) *</label>
+            <input type="number" class="form-control" id="editProductPrice" name="price" step="0.01" min="0" required>
+          </div>
+          <div class="mb-3">
+            <label for="editProductAmount" class="form-label">金额(元)</label>
+            <input type="number" class="form-control" id="editProductAmount" name="amount" step="0.01" min="0" readonly>
+          </div>
+          <div class="mb-3">
+            <label for="editProductImage" class="form-label">图片URL</label>
+            <input type="url" class="form-control" id="editProductImage" name="image_url" placeholder="images/...">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary" id="saveEditProduct">保存修改</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-        // 启动摄像头
-        startBtn.addEventListener('click', async () => {
+<script>
+        // 计算金额
+        document.getElementById('productPrice').addEventListener('input', updateAmount);
+        document.getElementById('productQuantity').addEventListener('input', updateAmount);
+
+        function updateAmount() {
+            const price = parseFloat(document.getElementById('productPrice').value) || 0;
+            const quantity = parseInt(document.getElementById('productQuantity').value) || 0;
+            document.getElementById('productAmount').value = (price * quantity).toFixed(2);
+        }
+
+        // 添加商品
+        document.getElementById('addProductForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+
             try {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = stream;
-            } catch (err) {
-                resultDiv.innerHTML = `摄像头访问失败: ${err.message}`;
+                const response = await fetch('/api/add_product', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+                const resultDiv = document.getElementById('addResult');
+
+                if (response.ok) {
+                    resultDiv.className = 'alert alert-success mt-3';
+                    resultDiv.textContent = `商品添加成功！ID: ${result.product_id}`;
+                    this.reset();
+                    document.getElementById('productAmount').value = '';
+                } else {
+                    resultDiv.className = 'alert alert-danger mt-3';
+                    resultDiv.textContent = `添加失败: ${result.error}`;
+                }
+            } catch (error) {
+                document.getElementById('addResult').className = 'alert alert-danger mt-3';
+                document.getElementById('addResult').textContent = `网络错误: ${error.message}`;
             }
         });
 
-        // 停止摄像头
-        stopBtn.addEventListener('click', () => {
-            if (stream) {
-                stream.getTracks().forEach(track => track.stop());
-                video.srcObject = null;
-            }
+        // 本地数据库搜索
+        document.getElementById('localSearchButton').addEventListener('click', searchLocalProducts);
+        document.getElementById('localSearchKeyword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') searchLocalProducts();
         });
 
-        // 拍照识别
-        captureBtn.addEventListener('click', async () => {
-            if (!stream) {
-                resultDiv.innerHTML = '请先启动摄像头';
+        async function searchLocalProducts() {
+            const keyword = document.getElementById('localSearchKeyword').value.trim();
+            const resultsDiv = document.getElementById('localSearchResults');
+
+            try {
+                resultsDiv.innerHTML = '<div class="col-12 text-center"><div class="spinner-border" role="status"><span class="visually-hidden">搜索中...</span></div></div>';
+
+                const response = await fetch(`/api/search_products?keyword=${encodeURIComponent(keyword)}`);
+                const products = await response.json();
+
+                if (!response.ok) throw new Error(products.error || '搜索失败');
+
+                if (products.length === 0) {
+                    resultsDiv.innerHTML = '<div class="col-12 text-center text-muted">没有找到匹配的商品</div>';
+                    return;
+                }
+
+                resultsDiv.innerHTML = products.map(product => `
+                    <div class="col-md-4 mb-4">
+                        <div class="card">
+                            ${product.image_url ? `<img src="${product.image_url}" class="card-img-top" style="max-height: 200px; object-fit: contain;" alt="${product.name}">` : ''}
+                            <div class="card-body">
+                                <h5 class="card-title">${product.name}</h5>
+                                <p class="card-text">
+                                    ${product.specifications ? `<strong>规格:</strong> ${product.specifications}<br>` : ''}
+                                    <strong>单价:</strong> ¥${parseFloat(product.price).toFixed(2)}<br>
+                                    <strong>数量:</strong> ${product.quantity || 1} ${product.unit || '个'}<br>
+                                    <strong>金额:</strong> ¥${parseFloat(product.amount || product.price * (product.quantity || 1)).toFixed(2)}
+                                </p>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editProductModal" onclick="populateEditForm(${JSON.stringify(product).replace(/"/g, '&quot;')})">修改</button>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteProduct(${product.id})">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="col-12 text-center text-danger">${error.message}</div>`;
+            }
+        }
+
+        // 原有API搜索和OCR功能代码
+        const resultDiv = document.getElementById('result');
+        const imageUpload = document.getElementById('imageUpload');
+        const uploadButton = document.getElementById('uploadButton');
+
+        // 图片上传识别
+        uploadButton.addEventListener('click', async () => {
+            const file = imageUpload.files[0];
+            if (!file) {
+                resultDiv.innerHTML = '请先选择图片文件';
                 return;
             }
 
-            // 绘制视频帧到canvas
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = canvas.toDataURL('image/jpeg');
-
             try {
                 resultDiv.innerHTML = '识别中...';
-                // 发送图片到后端
-                const response = await fetch('/api/ocr', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ image: imageData })
-                });
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    const imageData = e.target.result;
+                    // 发送图片到后端
+                    const response = await fetch('/api/ocr', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image: imageData })
+                    });
 
-                const data = await response.json();
-                if (data.error) {
-                    resultDiv.innerHTML = `错误: ${data.error}`;
-                } else if (data.products && data.products.length > 0) {
-                    displayResults(data.keyword, data.products);
-                } else {
-                    resultDiv.innerHTML = `未找到与 '${keyword}' 相关的商品，请尝试其他关键词或调整拍摄角度。`;
-                }
-            } catch (err) {
-                resultDiv.innerHTML = `摄像头访问失败: ${err.message}`;
-            }
-        });
-        // 启动摄像头
-        async function startCamera() {
-            try {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    throw new Error('您的浏览器不支持摄像头访问，请使用最新版浏览器或切换至HTTPS环境');
-                }
-                const constraints = {
-                    video: {
-                        width: { ideal: 480 },
-                        height: { ideal: 640 },
-                        facingMode: 'environment' // 默认使用后置摄像头
-                    },
-                    audio: false
+                    const data = await response.json();
+                    if (data.error) {
+                        resultDiv.innerHTML = `错误: ${data.error}`;
+                    } else if (data.products && data.products.length > 0) {
+                        displayResults(data.keyword, data.products);
+                    } else {
+                        resultDiv.innerHTML = `未找到与识别内容相关的商品，请尝试其他图片`;
+                    }
                 };
-                const stream = await navigator.mediaDevices.getUserMedia(constraints);
-                videoElement.srcObject = stream;
-                isCameraActive = true;
+                reader.readAsDataURL(file);
             } catch (err) {
-                console.error('摄像头访问失败:', err);
-                resultDiv.innerHTML = `摄像头访问失败: ${err.message}<br>请确保已授予摄像头权限并尝试刷新页面`;
+                resultDiv.innerHTML = `上传失败: ${err.message}`;
             }
-        }
-        // 拍照按钮事件监听
-        captureButton.addEventListener('click', captureImage);
-        captureButton.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            captureImage();
         });
         // 关键词搜索功能
         const searchButton = document.getElementById('searchButton');
@@ -179,6 +336,140 @@
                 resultDiv.innerHTML = `搜索失败: ${err.message}`;
             }
         }
+
+        // 显示搜索结果
+        function displayResults(keyword, products) {
+            let html = `<div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h3>"${keyword}" 的搜索结果 (${products.length} 个)</h3>
+                            <button id="exportExcel" onclick="exportToExcel(${JSON.stringify(products)}, '${keyword}')">导出Excel</button>
+                        </div>`;
+            html += '<div class="products-container">';
+            
+            products.forEach(product => {
+                html += `
+                <div class="product-item">
+                    <span class="platform">${product.platform}</span>
+                    <h4>${product.name}</h4>
+                    <p>价格: ${product.price}</p>
+                    <p>链接: <a href="${product.url}" target="_blank">查看商品</a></p>
+                </div>
+                `;
+            });
+            
+            html += '</div>';
+            resultDiv.innerHTML = html;
+        }
+
+        // 导出Excel功能
+        function exportToExcel(products, keyword) {
+            // 使用SheetJS生成Excel文件
+            const ws = XLSX.utils.json_to_sheet(products);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "商品列表");
+            XLSX.writeFile(wb, `${keyword}_商品搜索结果.xlsx`);
+        }
+        // 添加修改和删除功能的JavaScript代码
+        function populateEditForm(product) {
+            document.getElementById('editProductId').value = product.id;
+            document.getElementById('editProductName').value = product.name;
+            document.getElementById('editProductSpec').value = product.specifications || '';
+            document.getElementById('editProductUnit').value = product.unit || '';
+            document.getElementById('editProductQuantity').value = product.quantity || 1;
+            document.getElementById('editProductPrice').value = product.price;
+            document.getElementById('editProductAmount').value = product.amount || (product.price * (product.quantity || 1)).toFixed(2);
+            document.getElementById('editProductImage').value = product.image_url || '';
+            
+            // 显示模态框
+            const modal = document.getElementById('editProductModal');
+            modal.style.display = 'block';
+            modal.classList.add('show');
+            document.body.classList.add('modal-open');
+            
+            // 添加背景遮罩
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop fade show';
+            document.body.appendChild(backdrop);
+        }
+
+        // 修改金额计算
+        document.getElementById('editProductPrice').addEventListener('input', updateEditAmount);
+        document.getElementById('editProductQuantity').addEventListener('input', updateEditAmount);
+
+        function updateEditAmount() {
+            const price = parseFloat(document.getElementById('editProductPrice').value) || 0;
+            const quantity = parseInt(document.getElementById('editProductQuantity').value) || 0;
+            document.getElementById('editProductAmount').value = (price * quantity).toFixed(2);
+        }
+
+        // 保存修改
+        document.getElementById('saveEditProduct').addEventListener('click', async function() {
+            const productId = document.getElementById('editProductId').value;
+            if (!productId || isNaN(productId)) {
+                alert('无效的商品ID，请刷新页面重试');
+                return;
+            }
+            const formData = new FormData(document.getElementById('editProductForm'));
+            const productData = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch(`/api/update_product/${productId}`, {
+                    method: 'PUT',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`服务器错误: ${response.status} - ${errorText.substring(0, 100)}`);
+                }
+
+                const result = await response.json();
+                if (result.success) {
+                    alert('商品修改成功！');
+                    // 替换原有的Bootstrap模态框隐藏代码
+                    // const modal = bootstrap.Modal.getInstance(document.getElementById('editProductModal'));
+                    // modal.hide();
+                    
+                    // 使用原生JavaScript隐藏模态框
+                    const modal = document.getElementById('editProductModal');
+                    modal.classList.remove('show');
+                    modal.style.display = 'none';
+                    
+                    // 移除背景遮罩
+                    const backdrop = document.querySelector('.modal-backdrop');
+                    if (backdrop) {
+                      backdrop.remove();
+                    }
+                    searchLocalProducts();
+                } else {
+                    alert(`修改失败: ${result.error || '未知错误'}`);
+                }
+            } catch (error) {
+                alert(`网络错误: ${error.message}`);
+            }
+        });
+
+        // 删除商品
+        async function deleteProduct(productId) {
+            if (!confirm('确定要删除这个商品吗？')) return;
+
+            try {
+                const response = await fetch(`/api/delete_product/${productId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+                if (response.ok && result.success) {
+                    alert('商品删除成功！');
+                    searchLocalProducts();
+                } else {
+                    alert(`删除失败: ${result.error || '未知错误'}`);
+                }
+            } catch (error) {
+                alert(`网络错误: ${error.message}`);
+            }
+        }
     </script>
 </body>
 </html>
+
+

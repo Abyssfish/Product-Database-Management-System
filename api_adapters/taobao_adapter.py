@@ -19,7 +19,7 @@ class TaobaoAdapter(BaseAdapter):
     def search_product(self, keyword):
         """使用淘宝API搜索商品"""
         params = {
-            'method': 'taobao.items.search',
+            'method': 'taobao.tbk.item.search',  # 更换为淘宝客商品搜索接口
             'app_key': self.app_key,
             'timestamp': time.strftime('%Y-%m-%d %H:%M:%S'),
             'format': 'json',
@@ -27,8 +27,22 @@ class TaobaoAdapter(BaseAdapter):
             'sign_method': 'md5',
             'q': keyword,
             'page_no': 1,
-            'page_size': 20
+            'page_size': 20,
+            'platform': 1  # 添加平台参数（1=PC，2=无线）
         }
+
+    def _parse_response(self, response):
+        """解析淘宝API响应"""
+        products = []
+        if 'tbk_item_search_response' in response and 'results' in response['tbk_item_search_response']:
+            for item in response['tbk_item_search_response']['results']['n_tbk_item']:
+                products.append({
+                    'title': item.get('title', ''),
+                    'price': item.get('zk_final_price', '0'),
+                    'url': f'https://item.taobao.com/item.htm?id={item.get("num_iid")}',
+                    'image': item.get('pict_url', '')
+                })
+        return products
 
         # 生成签名
         params['sign'] = self._generate_signature(params)
@@ -55,16 +69,3 @@ class TaobaoAdapter(BaseAdapter):
         sign_str += self.app_secret
         # MD5加密并转为大写
         return hashlib.md5(sign_str.encode('utf-8')).hexdigest().upper()
-
-    def _parse_response(self, response):
-        """解析淘宝API响应"""
-        products = []
-        if 'items_search_response' in response and 'items' in response['items_search_response']:
-            for item in response['items_search_response']['items']['item']:
-                products.append({
-                    'title': item.get('title', ''),
-                    'price': item.get('price', '0'),
-                    'url': f'https://item.taobao.com/item.htm?id={item.get("num_iid")}',
-                    'image': item.get('pic_url', '')
-                })
-        return products
