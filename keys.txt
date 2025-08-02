@@ -1,3 +1,0 @@
-(/c/Users/Administrator/.ssh/id_ed25519): github_key
-host dns
-C:\Windows\System32\drivers\etc
