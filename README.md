@@ -1,1 +1,2 @@
-python app.py
+install requirements
+ python app.py
