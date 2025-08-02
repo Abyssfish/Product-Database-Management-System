@@ -2,3 +2,6 @@ public/images/
 products.db
 gitee token.txt
 *.pem
+github_key.pub
+github_key
+keys.txt
